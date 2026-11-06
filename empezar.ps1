@@ -13,6 +13,15 @@ function Empezar {
   $ErrorActionPreference = 'Continue'
   try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
 
+  # GitHub Pages sirve este fichero sin "charset", y Windows PowerShell lo decodifica como Latin-1: las tildes llegan
+  # rotas («HarÃ©»). Si es el caso, me vuelvo a cargar leyendo los bytes como UTF-8 y sigo desde ahí.
+  if ('é' -ne [char]0xE9 -and -not $env:EMPEZAR_RECARGADO) {
+    $env:EMPEZAR_RECARGADO = '1'
+    $bytes = (Invoke-WebRequest -UseBasicParsing 'https://zoolutionslab.github.io/empezar/empezar.ps1').RawContentStream.ToArray()
+    Invoke-Expression ([System.Text.Encoding]::UTF8.GetString($bytes))
+    return
+  }
+
   $Org = 'zoolutionslab'
   $Repo = if ($env:EMPEZAR_REPO) { $env:EMPEZAR_REPO } else { "$Org/zoo" }
   $RepoAcceso = "$Org/empezar"
