@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Empezar a trabajar en la herramienta de notarías</title>
+    <style>
+      :root { --bg:#F4F5F7; --ink:#111827; --muted:#4B5563; --line:#E5E7EB; --accent:#1E3A8A; --accent-soft:#DBEAFE; --warn:#92400E; --warn-soft:#FEF3C7; }
+      * { box-sizing: border-box; }
+      body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:var(--bg); color:var(--ink); font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; font-size:16px; line-height:1.5; }
+      main { width:100%; max-width:640px; background:#fff; border-radius:16px; padding:36px; display:flex; flex-direction:column; gap:18px; }
+      .logo { width:40px; height:40px; border-radius:10px; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; }
+      h1 { margin:0; font-size:26px; line-height:1.25; }
+      ol { margin:0; padding-left:22px; display:flex; flex-direction:column; gap:8px; color:#374151; }
+      .botones { display:flex; flex-wrap:wrap; gap:12px; }
+      a.btn { display:inline-flex; align-items:center; justify-content:center; height:52px; padding:0 22px; border-radius:10px; border:1px solid var(--accent); background:#fff; color:var(--accent); font-weight:600; font-size:16px; text-decoration:none; }
+      a.btn.principal { background:var(--accent); color:#fff; }
+      a.btn:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+      .mac { background:var(--accent-soft); border-radius:10px; padding:14px 16px; font-size:14px; color:var(--accent); }
+      code { display:block; margin-top:6px; padding:8px 10px; background:#fff; border-radius:6px; font-size:13px; overflow-x:auto; color:var(--ink); }
+      small { color:var(--muted); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="logo" aria-hidden="true">N</div>
+      <h1>Empezar a trabajar en la herramienta de notarías</h1>
+      <ol>
+        <li>Descarga el fichero de abajo para tu ordenador y haz doble clic en él.</li>
+        <li>Te irá diciendo, en castellano, qué instalar y qué pulsar. Antes de instalar nada te pregunta.</li>
+        <li>Al final se abre la herramienta y tu IA, lista para trabajar. Si algo falla, mándale una captura a Lucas.</li>
+      </ol>
+      <div class="botones">
+        <a class="btn principal" id="btn-win" href="empezar.cmd" download>Descargar para Windows</a>
+        <a class="btn" id="btn-mac" href="empezar.command" download>Descargar para Mac</a>
+      </div>
+      <div class="mac" id="ayuda-mac">
+        <b>En Mac</b>, si al hacer doble clic el fichero no se abre, abre la aplicación «Terminal», pega esta línea y pulsa Intro:
+        <code>bash &lt;(curl -fsSL https://zoolutionslab.github.io/empezar/empezar.command)</code>
+      </div>
+      <small>Windows pedirá confirmación al abrir el fichero descargado («Windows protegió tu PC»): pulsa «Más información» y «Ejecutar de todas formas». Es el fichero de Zoolutions.</small>
+    </main>
+    <script>
+      var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+      if (mac) {
+        var w = document.getElementById("btn-win"), m = document.getElementById("btn-mac");
+        m.className = "btn principal"; w.className = "btn";
+        m.parentNode.insertBefore(m, w);
+      } else {
+        document.getElementById("ayuda-mac").style.display = "none";
+      }
+    </script>
+  </body>
+</html>
