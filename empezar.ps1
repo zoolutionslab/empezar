@@ -295,9 +295,24 @@ function Empezar {
   }
   Ok "El Zoo está en  $Destino"
 
+  # Acceso directo «Zoo» en el Escritorio, con la cabra. En modo prueba (EMPEZAR_RAIZ) se deja dentro de la carpeta de prueba.
   $lanzador = Join-Path $Destino 'Zoo.cmd'
+  try {
+    $escritorio = if ($env:EMPEZAR_RAIZ) { $Raiz } else { [Environment]::GetFolderPath('Desktop') }
+    $acceso = Join-Path $escritorio 'Zoo.lnk'
+    $wsh = New-Object -ComObject WScript.Shell
+    $lnk = $wsh.CreateShortcut($acceso)
+    $lnk.TargetPath = $lanzador
+    $lnk.WorkingDirectory = $Destino
+    $lnk.Description = 'El Zoo de Zoolutions Lab'
+    $icono = Join-Path $Destino 'identidad\marca\zoo.ico'
+    if (Test-Path $icono) { $lnk.IconLocation = "$icono,0" }
+    $lnk.Save()
+    Ok "Acceso directo «Zoo» creado en  $escritorio"
+  } catch { Write-Host " No he podido crear el acceso directo en el Escritorio ($($_.Exception.Message)). Puedes abrir el Zoo desde la carpeta $Destino (Zoo.cmd)." }
+
   Write-Host ''
-  Write-Host ' Ya está todo. A partir de ahora, para trabajar: abre la carpeta del Zoo y haz doble clic en  Zoo.cmd'
+  Write-Host ' Ya está todo. A partir de ahora, para trabajar: doble clic en «Zoo», en el Escritorio.'
   if ($SinAbrir) {
     Write-Host " (modo prueba) Abriría: $lanzador"
   } elseif (Test-Path $lanzador) {

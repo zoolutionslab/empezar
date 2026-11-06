@@ -252,9 +252,26 @@ fi
 chmod +x "$DESTINO"/*.command 2>/dev/null || true
 ok "El Zoo está en  $DESTINO"
 
+# Acceso directo «Zoo» en el Escritorio: una pequeña app (osacompile, viene con el Mac) que abre Zoo.command, con la cabra
+# de icono (iconutil, también del sistema). En modo prueba (EMPEZAR_RAIZ) se deja dentro de la carpeta de prueba.
 LANZADOR="$DESTINO/Zoo.command"
+if command -v osacompile >/dev/null 2>&1; then
+  ESCRITORIO="$HOME/Desktop"; [ -n "$EMPEZAR_RAIZ" ] && ESCRITORIO="$RAIZ"
+  APP="$ESCRITORIO/Zoo.app"
+  rm -rf "$APP"
+  if osacompile -o "$APP" -e "do shell script \"open '$LANZADOR'\"" >/dev/null 2>&1; then
+    if command -v iconutil >/dev/null 2>&1 && [ -d "$DESTINO/identidad/marca/zoo.iconset" ]; then
+      iconutil -c icns "$DESTINO/identidad/marca/zoo.iconset" -o "$APP/Contents/Resources/applet.icns" 2>/dev/null && touch "$APP"
+    fi
+    ok "Acceso directo «Zoo» creado en  $ESCRITORIO"
+  else
+    echo " No he podido crear el acceso directo en el Escritorio. Puedes abrir el Zoo desde la carpeta $DESTINO (Zoo.command)."
+  fi
+else
+  echo " (En este sistema no hay osacompile: sin acceso directo. Abre el Zoo desde la carpeta $DESTINO.)"
+fi
 echo
-echo " Ya está todo. A partir de ahora, para trabajar: abre la carpeta del Zoo y haz doble clic en  Zoo.command"
+echo " Ya está todo. A partir de ahora, para trabajar: doble clic en «Zoo», en el Escritorio."
 if [ "$SIN_ABRIR" = "1" ]; then
   echo " (modo prueba) Abriría: $LANZADOR"
 elif [ -f "$LANZADOR" ]; then
