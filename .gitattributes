@@ -1,0 +1,6 @@
+# El .cmd se guarda con sus bytes exactos (CRLF): GitHub Pages sirve el blob tal cual y cmd.exe necesita CRLF.
+*.cmd -text
+*.ps1 text eol=lf
+*.sh text eol=lf
+*.html text eol=lf
+*.png binary

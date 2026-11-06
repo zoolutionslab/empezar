@@ -1,0 +1,12 @@
+name: Acceso al Zoo
+description: Pide entrar en la organización de Zoolutions Lab con tu palabra de invitación.
+title: "Acceso: "
+labels: ["acceso"]
+body:
+  - type: input
+    id: palabra
+    attributes:
+      label: Palabra de invitación
+      description: Tu animal; te lo ha dicho Lucas.
+    validations:
+      required: true

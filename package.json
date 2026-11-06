@@ -1,0 +1,8 @@
+{
+  "name": "empezar",
+  "private": true,
+  "description": "Primera instalación para los socios de Zoolutions Lab y acceso por palabra de invitación.",
+  "scripts": {
+    "test": "node --test \"pruebas/*.test.mjs\""
+  }
+}

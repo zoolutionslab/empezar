@@ -3,52 +3,178 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Empezar a trabajar en la herramienta de notarías</title>
+    <meta name="color-scheme" content="dark" />
+    <title>Empezar en Zoolutions Lab</title>
+    <meta name="description" content="Deja tu ordenador listo para trabajar en Zoolutions Lab y entra en el Zoo. Solo una vez." />
     <style>
-      :root { --bg:#F4F5F7; --ink:#111827; --muted:#4B5563; --line:#E5E7EB; --accent:#1E3A8A; --accent-soft:#DBEAFE; --warn:#92400E; --warn-soft:#FEF3C7; }
+      /* Zoolutions Lab · tokens (zoolutionslab.com, site.css y zl.css). Blanco sobre negro, sin color. */
+      @font-face { font-family: "Inter"; font-weight: 600; font-style: normal; font-display: swap;
+        src: url("https://zoolutionslab.com/assets/fonts/inter-latin-600-normal.woff2") format("woff2"); }
+      :root {
+        --zl-bg: #000; --zl-bg-soft: #0a0a0a; --zl-ink: #fafafa; --zl-white: #fff;
+        --zl-muted: rgba(250,250,250,.66); --zl-dim: rgba(250,250,250,.42);
+        --zl-card: rgba(255,255,255,.06); --zl-card-soft: rgba(255,255,255,.035);
+        --zl-line: rgba(255,255,255,.12); --zl-line-soft: rgba(255,255,255,.10);
+        --zl-font: "Inter", system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+        --zl-r-tile: 14px; --zl-r-box: 18px; --zl-r-pill: 999px; --zl-ease: cubic-bezier(.22,1,.36,1);
+        --zl-pad: clamp(18px, 3.4vw, 56px);
+      }
       * { box-sizing: border-box; }
-      body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; background:var(--bg); color:var(--ink); font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; font-size:16px; line-height:1.5; }
-      main { width:100%; max-width:640px; background:#fff; border-radius:16px; padding:36px; display:flex; flex-direction:column; gap:18px; }
-      .logo { width:40px; height:40px; border-radius:10px; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; }
-      h1 { margin:0; font-size:26px; line-height:1.25; }
-      ol { margin:0; padding-left:22px; display:flex; flex-direction:column; gap:8px; color:#374151; }
-      .botones { display:flex; flex-wrap:wrap; gap:12px; }
-      a.btn { display:inline-flex; align-items:center; justify-content:center; height:52px; padding:0 22px; border-radius:10px; border:1px solid var(--accent); background:#fff; color:var(--accent); font-weight:600; font-size:16px; text-decoration:none; }
-      a.btn.principal { background:var(--accent); color:#fff; }
-      a.btn:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
-      .mac { background:var(--accent-soft); border-radius:10px; padding:14px 16px; font-size:14px; color:var(--accent); }
-      code { display:block; margin-top:6px; padding:8px 10px; background:#fff; border-radius:6px; font-size:13px; overflow-x:auto; color:var(--ink); }
-      small { color:var(--muted); }
+      html { background: var(--zl-bg); }
+      body { margin: 0; background: var(--zl-bg); color: var(--zl-ink); font: 500 15px/1.5 var(--zl-font); letter-spacing: -0.01em; -webkit-font-smoothing: antialiased; }
+      main { max-width: 760px; margin: 0 auto; padding: 36px var(--zl-pad) 64px; display: flex; flex-direction: column; gap: 22px; }
+      header { display: flex; flex-direction: column; gap: 14px; }
+      .marca { display: flex; align-items: center; gap: 14px; }
+      .marca img { width: 44px; height: auto; }
+      .label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--zl-dim); }
+      h1 { margin: 0; font-weight: 600; font-size: clamp(40px, 7vw, 64px); line-height: .95; letter-spacing: -0.045em; }
+      h2 { margin: 0 0 10px; font-weight: 600; font-size: 18px; letter-spacing: -0.02em; }
+      p { margin: 0; color: var(--zl-muted); }
+      p strong, li strong { color: var(--zl-ink); font-weight: 600; }
+      .lead { font-size: 17px; color: var(--zl-ink); }
+      .movil { display: none; padding: 12px 16px; border-radius: var(--zl-r-tile); background: var(--zl-card); border: 1px solid var(--zl-line); color: var(--zl-ink); }
+      .elige { display: flex; gap: 12px; flex-wrap: wrap; }
+      .btn { display: inline-flex; align-items: center; justify-content: center; height: 52px; padding: 0 28px; border-radius: var(--zl-r-pill);
+        background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.55); font: 500 16px/1 var(--zl-font); letter-spacing: -0.01em; cursor: pointer;
+        transition: background .25s var(--zl-ease), color .25s var(--zl-ease); text-decoration: none; }
+      .btn[aria-pressed="true"], .btn.principal { background: #fff; color: #0a0a0a; border-color: #fff; }
+      .btn:focus-visible { outline: 3px solid rgba(255,255,255,.6); outline-offset: 3px; }
+      .card { background: var(--zl-card-soft); border: 1px solid var(--zl-line-soft); border-radius: var(--zl-r-box); padding: 22px; }
+      .panel { display: none; }
+      .panel.activo { display: block; }
+      ol, ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; color: var(--zl-muted); }
+      .pasos li::marker { color: var(--zl-ink); font-weight: 600; }
+      .linea { display: flex; gap: 10px; align-items: stretch; margin: 10px 0 4px; }
+      .linea code { flex: 1; display: block; padding: 12px 14px; border-radius: var(--zl-r-tile); background: var(--zl-card); border: 1px solid var(--zl-line);
+        font: 500 14px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--zl-ink); overflow-x: auto; white-space: pre; }
+      .copiar { height: auto; padding: 0 18px; white-space: nowrap; }
+      details { border-top: 1px solid var(--zl-line-soft); margin-top: 16px; padding-top: 12px; color: var(--zl-muted); }
+      summary { cursor: pointer; color: var(--zl-ink); font-weight: 600; list-style: none; }
+      summary::before { content: "+ "; color: var(--zl-dim); }
+      details[open] summary::before { content: "– "; }
+      details ol { margin-top: 10px; }
+      a { color: var(--zl-ink); }
+      .chip { display: inline-flex; align-items: center; height: 30px; padding: 0 13px; border-radius: var(--zl-r-pill); background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.13); font-size: 12.5px; color: rgba(255,255,255,.88); }
+      footer { color: var(--zl-dim); font-size: 12.5px; }
+      @media (max-width: 560px) {
+        .elige .btn { flex: 1 1 100%; }
+        .linea { flex-direction: column; }
+        .copiar { height: 44px; }
+        .movil { display: block; }
+      }
     </style>
   </head>
   <body>
     <main>
-      <div class="logo" aria-hidden="true">N</div>
-      <h1>Empezar a trabajar en la herramienta de notarías</h1>
-      <ol>
-        <li>Descarga el fichero de abajo para tu ordenador y haz doble clic en él.</li>
-        <li>Te irá diciendo, en castellano, qué instalar y qué pulsar. Antes de instalar nada te pregunta.</li>
-        <li>Al final se abre la herramienta y tu IA, lista para trabajar. Si algo falla, mándale una captura a Lucas.</li>
-      </ol>
-      <div class="botones">
-        <a class="btn principal" id="btn-win" href="empezar.cmd" download>Descargar para Windows</a>
-        <a class="btn" id="btn-mac" href="empezar.command" download>Descargar para Mac</a>
-      </div>
-      <div class="mac" id="ayuda-mac">
-        <b>En Mac</b>, si al hacer doble clic el fichero no se abre, abre la aplicación «Terminal», pega esta línea y pulsa Intro:
-        <code>bash &lt;(curl -fsSL https://zoolutionslab.github.io/empezar/empezar.command)</code>
-      </div>
-      <small>Windows pedirá confirmación al abrir el fichero descargado («Windows protegió tu PC»): pulsa «Más información» y «Ejecutar de todas formas». Es el fichero de Zoolutions.</small>
+      <header>
+        <div class="marca">
+          <img src="assets/goat.png" alt="" width="44" />
+          <span class="label">Zoolutions Lab</span>
+        </div>
+        <h1>Empezar.</h1>
+        <p class="lead">Una sola vez. Deja tu ordenador listo y te lleva al Zoo, tu entorno de trabajo.</p>
+        <div class="movil">Esto se hace en el <strong>ordenador</strong> donde vas a trabajar. Abre esta página allí.</div>
+      </header>
+
+      <section>
+        <div class="elige" role="group" aria-label="Elige tu ordenador">
+          <button class="btn" id="btn-win" type="button" aria-pressed="false">Windows</button>
+          <button class="btn" id="btn-mac" type="button" aria-pressed="false">Mac</button>
+        </div>
+      </section>
+
+      <section class="card panel" id="panel-win">
+        <h2>En Windows</h2>
+        <ol class="pasos">
+          <li><strong>Abre PowerShell.</strong> Pulsa la tecla Windows, escribe <strong>PowerShell</strong> y pulsa Intro.</li>
+          <li><strong>Pega esta línea</strong> (clic derecho o Ctrl+V) y pulsa Intro:
+            <div class="linea">
+              <code id="cmd-win">irm https://zoolutionslab.github.io/empezar/empezar.ps1 | iex</code>
+              <button class="btn copiar" type="button" data-copia="cmd-win">Copiar</button>
+            </div>
+          </li>
+          <li><strong>Sigue lo que te va diciendo.</strong> Antes de instalar nada te pregunta. Si cierra la ventana a mitad, vuelve a pegar la misma línea: sigue donde lo dejó.</li>
+        </ol>
+        <details>
+          <summary>Si prefieres descargar un fichero</summary>
+          <ol>
+            <li><a href="empezar.cmd" download>Descarga empezar.cmd</a>. El navegador puede decir que «no se descarga habitualmente»: pulsa los tres puntos del aviso y elige <strong>Conservar</strong> y, si insiste, <strong>Conservar de todos modos</strong>.</li>
+            <li>Haz doble clic en el fichero. Si sale «Windows protegió tu PC», pulsa <strong>Más información</strong> y <strong>Ejecutar de todas formas</strong>. Si sale «Abrir archivo: advertencia de seguridad», pulsa <strong>Ejecutar</strong>. Es el fichero de Zoolutions.</li>
+            <li>Hace lo mismo que la línea de arriba.</li>
+          </ol>
+        </details>
+      </section>
+
+      <section class="card panel" id="panel-mac">
+        <h2>En Mac</h2>
+        <ol class="pasos">
+          <li><strong>Abre Terminal.</strong> Pulsa Cmd+Espacio, escribe <strong>Terminal</strong> y pulsa Intro.</li>
+          <li><strong>Pega esta línea</strong> (Cmd+V) y pulsa Intro:
+            <div class="linea">
+              <code id="cmd-mac">bash &lt;(curl -fsSL https://zoolutionslab.github.io/empezar/empezar.sh)</code>
+              <button class="btn copiar" type="button" data-copia="cmd-mac">Copiar</button>
+            </div>
+          </li>
+          <li><strong>Sigue lo que te va diciendo.</strong> Antes de instalar nada te pregunta. Si pide la contraseña de tu Mac (para instalar Homebrew), escríbela aunque no se vea nada y pulsa Intro.</li>
+        </ol>
+        <details>
+          <summary>¿Por qué no un fichero para hacer doble clic?</summary>
+          <p>En Mac, un fichero descargado de internet no se puede ejecutar con doble clic sin pelearse con los avisos de seguridad. La línea de Terminal hace exactamente lo mismo, sin avisos.</p>
+        </details>
+      </section>
+
+      <section class="card">
+        <h2>Qué va a pasar</h2>
+        <ol class="pasos">
+          <li>Instala lo que falte (Git, Node.js, GitHub y Claude Code, tu IA), preguntando antes.</li>
+          <li>Entra en tu cuenta de GitHub (si no tienes, te ayuda a crearla) y pide tu acceso con tu palabra de invitación.</li>
+          <li>Te prepara tu avatar y te enseña dónde ponerlo en tu perfil de GitHub.</li>
+          <li>Descarga el Zoo en la carpeta <strong>Zoolutions</strong> de tu usuario y lo abre. A partir de ahí, siempre entras por el Zoo.</li>
+        </ol>
+      </section>
+
+      <section class="card">
+        <h2>Tu palabra de invitación</h2>
+        <p>En Zoolutions Lab cada socio es un animal. <strong>Tu palabra de invitación es tu animal</strong>, y te lo dice Lucas en persona o por un mensaje privado. Cuando el script te la pida, escríbela tal cual (da igual mayúsculas o tildes). Vale <strong>una sola vez</strong> y abre la puerta solo a la cuenta de GitHub con la que la uses, así que no la compartas. Si no te la han dicho, o no vale, el script te dirá qué mandarle a Lucas.</p>
+      </section>
+
+      <section>
+        <p>Si algo falla, haz una captura de la ventana y mándasela a Lucas. <span class="chip">Nada se instala sin preguntarte</span></p>
+      </section>
+
+      <footer>Zoolutions Lab · <a href="https://github.com/zoolutionslab/empezar">este sitio en GitHub</a></footer>
     </main>
     <script>
-      var mac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
-      if (mac) {
-        var w = document.getElementById("btn-win"), m = document.getElementById("btn-mac");
-        m.className = "btn principal"; w.className = "btn";
-        m.parentNode.insertBefore(m, w);
-      } else {
-        document.getElementById("ayuda-mac").style.display = "none";
-      }
+      (function () {
+        var ua = navigator.userAgent || "";
+        var esMac = /Macintosh|Mac OS X/.test(ua) && !/Windows/.test(ua);
+        var botones = { win: document.getElementById("btn-win"), mac: document.getElementById("btn-mac") };
+        var paneles = { win: document.getElementById("panel-win"), mac: document.getElementById("panel-mac") };
+        function elegir(cual) {
+          Object.keys(botones).forEach(function (k) {
+            botones[k].setAttribute("aria-pressed", k === cual ? "true" : "false");
+            paneles[k].classList.toggle("activo", k === cual);
+          });
+        }
+        botones.win.addEventListener("click", function () { elegir("win"); });
+        botones.mac.addEventListener("click", function () { elegir("mac"); });
+        elegir(esMac ? "mac" : "win");
+
+        Array.prototype.forEach.call(document.querySelectorAll(".copiar"), function (b) {
+          b.addEventListener("click", function () {
+            var texto = document.getElementById(b.getAttribute("data-copia")).textContent;
+            function hecho() { var antes = b.textContent; b.textContent = "Copiado"; setTimeout(function () { b.textContent = antes; }, 1800); }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(texto).then(hecho, function () { aMano(); });
+            } else { aMano(); }
+            function aMano() {
+              var t = document.createElement("textarea"); t.value = texto; document.body.appendChild(t); t.select();
+              try { document.execCommand("copy"); hecho(); } catch (e) { alert("Copia esta línea a mano:\n\n" + texto); }
+              document.body.removeChild(t);
+            }
+          });
+        });
+      })();
     </script>
   </body>
 </html>

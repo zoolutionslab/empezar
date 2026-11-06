@@ -1,0 +1,212 @@
+name: Acceso
+
+# Entrada de socios nuevos por palabra de invitación.
+#
+# Cuando alguien abre un issue con la plantilla «Acceso al Zoo» (etiqueta «acceso» o título «Acceso: ...»),
+# este workflow lee su palabra, la compara en forma de hash con invitaciones.json y, si vale y nadie la ha
+# usado, invita a esa persona a la organización zoolutionslab, en el equipo «socios». Siempre contesta en
+# el issue y lo cierra.
+#
+# Secretos del repositorio: CODIGO_SAL y ORG_TOKEN. Si falta alguno no hace nada automático: pide el usuario
+# de GitHub de la persona para que Lucas la meta a mano. Cómo se activan: docs/activar-acceso-automatico.md
+#
+# El cuerpo del issue tiene que tener el formato que deja el formulario de GitHub:
+#
+#   ### Palabra de invitación
+#
+#   <la palabra>
+#
+# El texto del issue es de quien lo escribe: nunca se pega dentro de una orden. Solo se lee desde el
+# objeto context dentro del script, y la palabra y su hash no se escriben en ningún comentario ni registro.
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: write
+
+jobs:
+  acceso:
+    name: acceso
+    if: >-
+      contains(github.event.issue.labels.*.name, 'acceso') ||
+      startsWith(github.event.issue.title, 'Acceso:')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # De uno en uno, para que dos personas a la vez no pisen los cambios de invitaciones.json.
+    concurrency:
+      group: acceso
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # historial completo: así `git pull --rebase` siempre encuentra el punto común
+      - uses: actions/github-script@v7
+        env:
+          CODIGO_SAL: ${{ secrets.CODIGO_SAL }}
+          ORG_TOKEN: ${{ secrets.ORG_TOKEN }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const { execFileSync } = require('child_process');
+            const { hash, extraerPalabra } = require(process.env.GITHUB_WORKSPACE + '/acceso/comun.js');
+
+            const ORG = 'zoolutionslab';
+            const EQUIPO = 'socios';
+            const TOPE_DIARIO = 5; // issues de acceso que una misma persona puede abrir al día
+            const { CODIGO_SAL, ORG_TOKEN } = process.env;
+            const { owner, repo } = context.repo;
+            const issue = context.payload.issue;
+            const login = issue.user.login;
+            const usuario = '`@' + login + '`'; // entre comillas de código, para no avisar a nadie con la arroba
+
+            // Contesta en el issue y lo cierra. Todos los caminos acaban aquí. La marca oculta (<!-- acceso:x -->)
+            // es la que lee el script `empezar` para saber qué hacer sin interpretar la prosa.
+            async function terminar(texto, razon, marca) {
+              const cuerpo = (marca ? '<!-- acceso:' + marca + ' -->\n' : '') + texto;
+              await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: cuerpo });
+              await github.rest.issues.update({ owner, repo, issue_number: issue.number, state: 'closed', state_reason: razon });
+            }
+
+            // Llamada a la API de GitHub con el token de la organización (el del workflow no puede invitar).
+            // Con fetch porque github.getOctokit no está disponible dentro de github-script.
+            async function api(metodo, ruta, cuerpo) {
+              const respuesta = await fetch('https://api.github.com' + ruta, {
+                method: metodo,
+                redirect: 'manual',
+                headers: Object.assign({
+                  Authorization: 'Bearer ' + ORG_TOKEN,
+                  Accept: 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28',
+                  'User-Agent': 'zoolutionslab-acceso',
+                }, cuerpo ? { 'Content-Type': 'application/json' } : {}),
+                body: cuerpo ? JSON.stringify(cuerpo) : undefined,
+              });
+              const texto = await respuesta.text();
+              let datos = null;
+              try { datos = texto ? JSON.parse(texto) : null; } catch (e) { datos = null; }
+              return { estado: respuesta.status, datos };
+            }
+
+            function fallo(que, r) {
+              const detalle = r.datos && r.datos.message ? ': ' + r.datos.message : '';
+              return new Error(que + ' (respuesta ' + r.estado + detalle + ')');
+            }
+
+            function git(...argumentos) {
+              return execFileSync('git', argumentos, { cwd: process.env.GITHUB_WORKSPACE, stdio: 'pipe', encoding: 'utf8' });
+            }
+
+            // Una invitación pendiente de aceptar cuenta como éxito: la persona solo tiene que aceptarla.
+            async function tieneInvitacionPendiente() {
+              const r = await api('GET', '/orgs/' + ORG + '/invitations?per_page=100');
+              return r.estado === 200 && Array.isArray(r.datos) &&
+                r.datos.some((i) => i && String(i.login).toLowerCase() === login.toLowerCase());
+            }
+
+            try {
+              // 1. Sin los dos secretos: modo manual.
+              if (!CODIGO_SAL || !ORG_TOKEN) {
+                await terminar('El acceso automático todavía no está activado. Tu usuario de GitHub es ' + usuario + ': mándaselo a Lucas y él te mete; cuando lo haga, vuelve a ejecutar `empezar`.', 'not_planned', 'manual');
+                return;
+              }
+
+              // 2. Si ya está dentro de la organización, no hay nada que hacer.
+              const miembro = await api('GET', '/orgs/' + ORG + '/members/' + encodeURIComponent(login));
+              if (miembro.estado === 204) {
+                await terminar('Ya eres del Zoo: esta cuenta de GitHub ya es miembro de Zoolutions Lab, así que no hace falta palabra ninguna (seguramente estás vinculando un segundo aparato). Vuelve a la ventana de `empezar` (si se ha parado, ejecútalo otra vez): seguirá desde donde lo dejaste.', 'completed', 'miembro');
+                return;
+              }
+              if (miembro.estado !== 404) throw fallo('No he podido comprobar si ya eres miembro', miembro);
+
+              // 3. Tope de intentos por día. Se cuentan todos los issues de esa persona en este repositorio
+              //    (aquí solo se abren de acceso) y no solo los que llevan la etiqueta, porque quien no es
+              //    colaborador no puede ponerla cuando abre el issue por otra vía que el formulario.
+              const hoy = new Date().toISOString().slice(0, 10);
+              const q = 'repo:' + owner + '/' + repo + ' is:issue author:' + login + ' created:>=' + hoy;
+              const busqueda = await github.request('GET /search/issues', { q, per_page: 100 });
+              const anteriores = busqueda.data.items.filter((i) => i.number !== issue.number).length;
+              if (anteriores >= TOPE_DIARIO) {
+                await terminar('Demasiados intentos hoy; pídele a Lucas que te meta. Tu usuario es ' + usuario + '.', 'not_planned', 'tope');
+                return;
+              }
+
+              // 4. La palabra.
+              const palabra = extraerPalabra(issue.body);
+              if (!palabra) {
+                await terminar('No encuentro tu palabra de invitación en este mensaje. Vuelve a ejecutar `empezar` y escríbela cuando te la pida (es el nombre de tu animal; te lo ha dicho Lucas). Si no se arregla, mándale a Lucas tu usuario ' + usuario + '.', 'not_planned', 'sin-palabra');
+                return;
+              }
+
+              // 5. Buscar su hash en la lista.
+              const ruta = path.join(process.env.GITHUB_WORKSPACE, 'invitaciones.json');
+              const lista = JSON.parse(fs.readFileSync(ruta, 'utf8'));
+              if (!Array.isArray(lista)) throw new Error('invitaciones.json no es una lista.');
+              const huella = hash(palabra, CODIGO_SAL);
+              const entrada = lista.find((e) => e && e.hash === huella);
+              if (!entrada) {
+                await terminar('Esa palabra no vale. Comprueba que la has escrito bien (es el nombre de tu animal) o pídele a Lucas que te meta; tu usuario es ' + usuario + '.', 'not_planned', 'no-vale');
+                return;
+              }
+              // Cada palabra vale una vez. Solo se deja repetir a la misma cuenta que ya la usó (por ejemplo,
+              // si se le perdió el aviso de la invitación): es la forma de reintentar si algo falló después.
+              const yaUsada = Boolean(entrada.usado_por);
+              if (yaUsada && String(entrada.usado_por).toLowerCase() !== login.toLowerCase()) {
+                await terminar([
+                  '¿Estás entrando desde otro aparato (el móvil, el portátil) con la palabra que ya usaste desde tu primer ordenador? Si es así, no necesitas palabra: entra en GitHub con la misma cuenta de la primera vez y el Zoo te reconoce.',
+                  '',
+                  'Cómo vincular un segundo aparato de forma segura:',
+                  '1. En el aparato nuevo, ejecuta Empezar (https://zoolutionslab.github.io/empezar/).',
+                  '2. Cuando pida entrar en GitHub, usa la misma cuenta de la primera vez: te enseñará un código de ocho letras para escribir en https://github.com/login/device (es la forma segura: la contraseña no se escribe en la terminal).',
+                  '3. El Zoo ve que ya eres miembro y no pide palabra.',
+                  '4. Entra en Claude con tu cuenta de siempre.',
+                  '',
+                  'Si no eres tú quien usó la palabra, pídele a Lucas la tuya.',
+                ].join('\n'), 'not_planned', 'usada');
+                return;
+              }
+
+              // 6. La palabra vale. Primero se lee el equipo; si eso falla no se gasta la palabra.
+              const equipo = await api('GET', '/orgs/' + ORG + '/teams/' + EQUIPO);
+              if (equipo.estado !== 200 || !equipo.datos || !equipo.datos.id) {
+                throw fallo('No he podido leer el equipo ' + EQUIPO, equipo);
+              }
+
+              // 7. Se marca usada ANTES de invitar: si el commit falla no queda ninguna invitación enviada
+              //    con la palabra todavía libre, y si falla la invitación la misma persona puede reintentar.
+              if (!yaUsada) {
+                entrada.usado_por = login;
+                entrada.fecha = new Date().toISOString();
+                fs.writeFileSync(ruta, JSON.stringify(lista, null, 2) + '\n');
+                git('config', 'user.name', 'zoolutionslab-bot');
+                git('config', 'user.email', 'bot@zoolutionslab.com');
+                git('add', 'invitaciones.json');
+                git('commit', '-m', 'chore: invitación usada por ' + login);
+                git('pull', '--rebase', 'origin', 'main');
+                git('push', 'origin', 'HEAD:main');
+              }
+
+              // 8. Invitar al equipo. Si ya tenía una invitación pendiente (422), también vale.
+              const invitacion = await api('POST', '/orgs/' + ORG + '/invitations', {
+                invitee_id: issue.user.id,
+                role: 'direct_member',
+                team_ids: [equipo.datos.id],
+              });
+              if (invitacion.estado !== 201) {
+                const pendiente = invitacion.estado === 422 && await tieneInvitacionPendiente();
+                if (!pendiente) throw fallo('No he podido enviar la invitación', invitacion);
+              }
+
+              await terminar('Invitación enviada. Acéptala en https://github.com/orgs/zoolutionslab/invitation (también te llega por correo). Después, vuelve a la ventana de `empezar`: sigue sola.', 'completed', 'invitado');
+            } catch (error) {
+              core.error('Fallo inesperado en el issue #' + issue.number + ': ' + (error && error.message ? error.message : String(error)));
+              try {
+                await terminar('Algo ha fallado al comprobar tu palabra; mándale a Lucas tu usuario ' + usuario + ' y esta dirección: ' + issue.html_url, 'not_planned', 'error');
+              } catch (otro) {
+                core.error('Tampoco he podido avisar en el issue: ' + otro.message);
+              }
+              core.setFailed('El acceso del issue #' + issue.number + ' ha fallado; mira el registro de este trabajo.');
+            }

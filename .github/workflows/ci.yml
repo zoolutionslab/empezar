@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  comprobar:
+    name: comprobar
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Pruebas
+        run: npm test
+      - name: Sintaxis de empezar.sh
+        run: bash -n empezar.sh
+      - name: Comprobar que existe la página
+        run: |
+          node -e "if (!require('fs').existsSync('index.html')) { console.error('Falta index.html'); process.exit(1); }"
+
+  comprobar-windows:
+    name: comprobar-windows
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sintaxis de empezar.ps1
+        run: |
+          powershell -NoProfile -Command "[scriptblock]::Create((Get-Content -Raw -Encoding UTF8 empezar.ps1)) | Out-Null"
