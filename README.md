@@ -2,7 +2,7 @@
 
 La primera instalación de cada socio de Zoolutions Lab: https://zoolutionslab.github.io/empezar/
 
-Solo se pasa por aquí una vez por persona y ordenador. Deja instalados Git, Node.js, GitHub CLI y Claude Code; entra en GitHub; pide el acceso a la organización con la **palabra de invitación** (el animal de cada socio, de un solo uso); prepara el avatar; descarga el Zoo (`zoolutionslab/zoo`) en `~/Zoolutions/zoo` y lo abre.
+Solo se pasa por aquí una vez por persona y ordenador. Pregunta con qué IA se va a trabajar (Claude Code, recomendada, o Codex, la de ChatGPT; `EMPEZAR_IA=claude|codex|ambas` lo fija sin preguntar) y guarda la elección en `~/.zoo/ajustes.json` (`ia`), que leen el Zoo y los lanzadores de los proyectos. Deja instalados Git, Node.js, GitHub CLI y la IA elegida (instaladores oficiales de Anthropic y de OpenAI; de respaldo, winget/npm en Windows y Homebrew en Mac); entra en GitHub; pide el acceso a la organización con la **palabra de invitación** (el animal de cada socio, de un solo uso); prepara el avatar; descarga el Zoo (`zoolutionslab/zoo`) en `~/Zoolutions/zoo` y lo abre.
 
 ## Ficheros
 
@@ -15,7 +15,7 @@ Solo se pasa por aquí una vez por persona y ordenador. Deja instalados Git, Nod
 
 ## Probar sin efectos
 
-Variables que entienden los dos scripts: `EMPEZAR_RAIZ` (carpeta destino en vez de `~/Zoolutions`), `EMPEZAR_SIN_INSTALAR=1`, `EMPEZAR_SIN_ABRIR=1`, `EMPEZAR_SIN_PAUSAS=1`, `EMPEZAR_REPO` (otro repositorio en vez de `zoolutionslab/zoo`).
+Variables que entienden los dos scripts: `EMPEZAR_IA` (`claude`, `codex` o `ambas`, sin preguntar), `EMPEZAR_RAIZ` (carpeta destino en vez de `~/Zoolutions`; en ese caso la elección de IA se guarda en `<raíz>/.zoo/ajustes.json`, no en la real), `EMPEZAR_SIN_INSTALAR=1`, `EMPEZAR_SIN_ABRIR=1`, `EMPEZAR_SIN_PAUSAS=1`, `EMPEZAR_REPO` (otro repositorio en vez de `zoolutionslab/zoo`).
 
 ```
 npm test            # pruebas del mecanismo de acceso

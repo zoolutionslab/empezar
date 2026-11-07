@@ -2,8 +2,8 @@
 # Empezar en Zoolutions Lab (Mac). Se ejecuta en Terminal con:
 #   bash <(curl -fsSL https://zoolutionslab.github.io/empezar/empezar.sh)
 # (así, y no con "curl | bash", el teclado sigue conectado al script: las preguntas y la contraseña de Homebrew funcionan).
-# Deja el Mac listo (Homebrew, Git, Node.js, GitHub CLI, Claude Code), entra en GitHub, pide el acceso con la palabra de
-# invitación, prepara el avatar, descarga el Zoo y lo abre. Solo hace falta una vez por persona y ordenador.
+# Deja el Mac listo (Homebrew, Git, Node.js, GitHub CLI y tu IA: Claude Code o Codex, la de ChatGPT), entra en GitHub, pide
+# el acceso con la palabra de invitación, prepara el avatar, descarga el Zoo y lo abre. Solo hace falta una vez por persona y ordenador.
 #
 # Variables para probar sin efectos:
 #   EMPEZAR_RAIZ=<carpeta>     destino en vez de ~/Zoolutions
@@ -11,6 +11,7 @@
 #   EMPEZAR_SIN_ABRIR=1        no abre el navegador ni el Zoo
 #   EMPEZAR_SIN_PAUSAS=1       no espera a que pulses Intro
 #   EMPEZAR_REPO=<owner/repo>  repositorio del Zoo (zoolutionslab/zoo)
+#   EMPEZAR_IA=claude|codex|ambas  la IA, sin preguntar (claude = Claude Code, codex = ChatGPT)
 
 # Si alguien lo lanzó con "curl | bash", recuperamos el teclado.
 if [ ! -t 0 ] && [ -r /dev/tty ]; then exec < /dev/tty; fi
@@ -24,6 +25,7 @@ SIN_INSTALAR="${EMPEZAR_SIN_INSTALAR:-0}"
 SIN_ABRIR="${EMPEZAR_SIN_ABRIR:-0}"
 SIN_PAUSAS="${EMPEZAR_SIN_PAUSAS:-0}"
 ANIMAL=""
+IA="$(printf '%s' "${EMPEZAR_IA:-}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
 
 titulo() { echo; echo " --- $1 ---"; }
 ok() { echo " [OK] $1"; }
@@ -52,7 +54,7 @@ cat <<EOF
  ====================================================
 
  Haré cinco cosas, y antes de instalar nada te pregunto:
-   1. Comprobar e instalar lo que falte: Git, Node.js, GitHub y Claude Code.
+   1. Elegir tu IA (Claude o ChatGPT) y comprobar e instalar lo que falte: Git, Node.js, GitHub y la IA.
    2. Entrar en tu cuenta de GitHub (si no tienes, te ayudo a crearla).
    3. Pedir tu acceso con tu palabra de invitación (tu animal).
    4. Preparar tu avatar para GitHub.
@@ -63,7 +65,39 @@ if [ "$SIN_INSTALAR" = "1" ] || [ "$SIN_ABRIR" = "1" ] || [ -n "$EMPEZAR_RAIZ" ]
 pausa "Pulsa Intro para empezar"
 
 # ---------- 1. Programas ----------
-titulo "Paso 1 de 5: programas necesarios"
+titulo "Paso 1 de 5: tu IA y los programas necesarios"
+case "$IA" in claude|codex|ambas) ;; *)
+  echo " En el Zoo trabajas hablando con una IA. Puedes elegir:"
+  echo "   1) Claude (recomendada): Claude Code, de Anthropic. Entras con tu cuenta de Claude."
+  echo "   2) ChatGPT (Codex): la IA de OpenAI. Entras con tu cuenta de ChatGPT."
+  echo "   3) Las dos (eliges cuál usar en el Zoo, en Perfil > Mi IA)."
+  if [ "$SIN_PAUSAS" = "1" ]; then IA="claude"; else
+    read -r -p " ¿Con qué IA vas a trabajar? [1, 2 o 3; Intro = 1] " r
+    case "$(printf '%s' "$r" | tr -d '[:space:]')" in 2*) IA="codex" ;; 3*) IA="ambas" ;; *) IA="claude" ;; esac
+  fi ;;
+esac
+IA_PRINCIPAL="claude"; [ "$IA" = "codex" ] && IA_PRINCIPAL="codex"
+case "$IA" in codex) NOMBRE_IA="ChatGPT (Codex)" ;; ambas) NOMBRE_IA="Claude y ChatGPT (Codex); en el Zoo empiezas con Claude" ;; *) NOMBRE_IA="Claude (Claude Code)" ;; esac
+ok "Tu IA: $NOMBRE_IA."
+echo " No te pide entrar ahora: la primera vez que abras una conversación en el Zoo, la IA te pedirá entrar con su cuenta"
+echo " (Claude: con tu cuenta de Claude; Codex: con tu cuenta de ChatGPT). Solo esa vez."
+# El Zoo y los lanzadores de los proyectos leen la elección de ~/.zoo/ajustes.json (clave "ia"). Se guarda al tener Node (abajo).
+guardar_ia() {
+  local casa fichero
+  if [ -n "${ZOO_CASA:-}" ]; then casa="$ZOO_CASA"; elif [ -n "${EMPEZAR_RAIZ:-}" ]; then casa="$RAIZ/.zoo"; else casa="$HOME/.zoo"; fi
+  fichero="$casa/ajustes.json"
+  mkdir -p "$casa" 2>/dev/null || true
+  if command -v node >/dev/null 2>&1 && node -e '
+    const fs = require("fs"); const [f, ia] = process.argv.slice(1); let a = {};
+    try { a = JSON.parse(fs.readFileSync(f, "utf8").replace(/^\uFEFF/, "")); } catch {}
+    if (typeof a !== "object" || a === null || Array.isArray(a)) a = {};
+    a.ia = ia; fs.writeFileSync(f, JSON.stringify(a, null, 2) + "\n");' "$fichero" "$IA_PRINCIPAL" 2>/dev/null; then
+    echo " (Elección guardada en $fichero)"
+  else
+    echo " No he podido guardar la elección en $fichero. Podrás cambiarla en el Zoo, en Perfil > Mi IA."
+  fi
+}
+echo
 cargar_brew >/dev/null 2>&1 || true
 if ! command -v brew >/dev/null 2>&1; then
   echo " Para instalar programas uso Homebrew, y no lo tienes."
@@ -95,7 +129,8 @@ instalar() { # instalar "nombre" "comando" "orden de brew" "para qué sirve"
 instalar "Git" git "brew install git" "guarda el historial de lo que haces y lo comparte con tu equipo"
 instalar "Node.js" node "brew install node" "es el motor que hace funcionar las herramientas"
 instalar "GitHub CLI" gh "brew install gh" "te conecta con GitHub, donde viven los proyectos"
-if ! command -v claude >/dev/null 2>&1; then
+guardar_ia
+if { [ "$IA" = "claude" ] || [ "$IA" = "ambas" ]; } && ! command -v claude >/dev/null 2>&1; then
   echo
   echo " Falta Claude Code: es la IA con la que vas a trabajar."
   if [ "$SIN_INSTALAR" = "1" ]; then
@@ -110,6 +145,23 @@ if ! command -v claude >/dev/null 2>&1; then
     grep -q '.local/bin' "$HOME/.zprofile" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zprofile"
   else
     echo " Sin Claude Code no puedo seguir. Vuelve a ejecutar la línea cuando quieras instalarlo."; exit 1
+  fi
+fi
+if { [ "$IA" = "codex" ] || [ "$IA" = "ambas" ]; } && ! command -v codex >/dev/null 2>&1; then
+  echo
+  echo " Falta Codex: la IA de ChatGPT con la que vas a trabajar."
+  if [ "$SIN_INSTALAR" = "1" ]; then
+    echo " (modo prueba) Lo instalaría con el instalador oficial (curl -fsSL https://chatgpt.com/codex/install.sh | sh) o, si falla, con brew install --cask codex."
+  elif pregunta "¿Lo instalo ahora?"; then
+    curl -fsSL https://chatgpt.com/codex/install.sh | sh || true   # instalador oficial de OpenAI
+    export PATH="$HOME/.local/bin:$PATH"
+    if ! command -v codex >/dev/null 2>&1; then
+      echo " El instalador oficial no ha terminado bien; pruebo con Homebrew."
+      brew install --cask codex || { mal "No se pudo instalar Codex. Haz una captura y mándasela a Lucas."; exit 1; }
+    fi
+    grep -q '.local/bin' "$HOME/.zprofile" 2>/dev/null || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zprofile"
+  else
+    echo " Sin Codex no puedo seguir. Vuelve a ejecutar la línea cuando quieras instalarlo."; exit 1
   fi
 fi
 ok "Todos los programas están instalados."

@@ -1,6 +1,6 @@
 # Empezar en Zoolutions Lab (Windows). Se ejecuta con:  irm https://zoolutionslab.github.io/empezar/empezar.ps1 | iex
-# Deja el ordenador listo (Git, Node.js, GitHub CLI, Claude Code), entra en GitHub, pide el acceso con la palabra de
-# invitación, prepara el avatar, descarga el Zoo y lo abre. Solo hace falta una vez por persona y ordenador.
+# Deja el ordenador listo (Git, Node.js, GitHub CLI y tu IA: Claude Code o Codex, la de ChatGPT), entra en GitHub, pide el
+# acceso con la palabra de invitación, prepara el avatar, descarga el Zoo y lo abre. Solo hace falta una vez por persona y ordenador.
 #
 # Variables para probar sin efectos:
 #   EMPEZAR_RAIZ=<carpeta>     destino en vez de %USERPROFILE%\Zoolutions
@@ -8,6 +8,7 @@
 #   EMPEZAR_SIN_ABRIR=1        no abre el navegador ni el Zoo
 #   EMPEZAR_SIN_PAUSAS=1       no espera a que pulses Intro
 #   EMPEZAR_REPO=<owner/repo>  repositorio del Zoo (zoolutionslab/zoo)
+#   EMPEZAR_IA=claude|codex|ambas  la IA, sin preguntar (claude = Claude Code, codex = ChatGPT)
 
 function Empezar {
   $ErrorActionPreference = 'Continue'
@@ -31,6 +32,7 @@ function Empezar {
   $SinAbrir = $env:EMPEZAR_SIN_ABRIR -eq '1'
   $SinPausas = $env:EMPEZAR_SIN_PAUSAS -eq '1'
   $script:Animal = $null
+  $script:IA = ("$env:EMPEZAR_IA").Trim().ToLowerInvariant()
 
   function Titulo($t) { Write-Host ''; Write-Host " --- $t ---" -ForegroundColor Cyan }
   function Ok($t) { Write-Host " [OK] $t" -ForegroundColor Green }
@@ -67,7 +69,7 @@ function Empezar {
   Write-Host ' ====================================================' -ForegroundColor Cyan
   Write-Host ''
   Write-Host ' Haré cinco cosas, y antes de instalar nada te pregunto:'
-  Write-Host '   1. Comprobar e instalar lo que falte: Git, Node.js, GitHub y Claude Code.'
+  Write-Host '   1. Elegir tu IA (Claude o ChatGPT) y comprobar e instalar lo que falte: Git, Node.js, GitHub y la IA.'
   Write-Host '   2. Entrar en tu cuenta de GitHub (si no tienes, te ayudo a crearla).'
   Write-Host '   3. Pedir tu acceso con tu palabra de invitación (tu animal).'
   Write-Host '   4. Preparar tu avatar para GitHub.'
@@ -77,7 +79,38 @@ function Empezar {
   Pausa 'Pulsa Intro para empezar'
 
   # ---------- 1. Programas ----------
-  Titulo 'Paso 1 de 5: programas necesarios'
+  Titulo 'Paso 1 de 5: tu IA y los programas necesarios'
+  if ($script:IA -notin @('claude', 'codex', 'ambas')) {
+    Write-Host ' En el Zoo trabajas hablando con una IA. Puedes elegir:'
+    Write-Host '   1) Claude (recomendada): Claude Code, de Anthropic. Entras con tu cuenta de Claude.'
+    Write-Host '   2) ChatGPT (Codex): la IA de OpenAI. Entras con tu cuenta de ChatGPT.'
+    Write-Host '   3) Las dos (eliges cuál usar en el Zoo, en Perfil > Mi IA).'
+    if ($SinPausas) { $script:IA = 'claude' } else {
+      $r = Read-Host ' ¿Con qué IA vas a trabajar? [1, 2 o 3; Intro = 1]'
+      $script:IA = switch -Regex ($r.Trim()) { '^2' { 'codex' } '^3' { 'ambas' } default { 'claude' } }
+    }
+  }
+  $script:IAPrincipal = if ($script:IA -eq 'codex') { 'codex' } else { 'claude' }
+  $nombreIA = switch ($script:IA) { 'codex' { 'ChatGPT (Codex)' } 'ambas' { 'Claude y ChatGPT (Codex); en el Zoo empiezas con Claude' } default { 'Claude (Claude Code)' } }
+  Ok "Tu IA: $nombreIA."
+  Write-Host ' No te pide entrar ahora: la primera vez que abras una conversación en el Zoo, la IA te pedirá entrar con su cuenta'
+  Write-Host ' (Claude: con tu cuenta de Claude; Codex: con tu cuenta de ChatGPT). Solo esa vez.'
+  # El Zoo y los lanzadores de los proyectos leen la elección de ~/.zoo/ajustes.json (clave "ia"). Se guarda sin BOM.
+  function Guardar-IA {
+    $casa = if ($env:ZOO_CASA) { $env:ZOO_CASA } elseif ($env:EMPEZAR_RAIZ) { Join-Path $Raiz '.zoo' } else { Join-Path $env:USERPROFILE '.zoo' }
+    $fichero = Join-Path $casa 'ajustes.json'
+    try {
+      if (-not (Test-Path $casa)) { New-Item -ItemType Directory -Path $casa -Force | Out-Null }
+      $ajustes = $null
+      if (Test-Path $fichero) { try { $ajustes = Get-Content -Raw -Encoding UTF8 $fichero | ConvertFrom-Json } catch { $ajustes = $null } }
+      if ($null -eq $ajustes) { $ajustes = New-Object PSObject }
+      $ajustes | Add-Member -NotePropertyName ia -NotePropertyValue $script:IAPrincipal -Force
+      [IO.File]::WriteAllText($fichero, ($ajustes | ConvertTo-Json -Depth 10) + "`n", (New-Object Text.UTF8Encoding $false))
+      Write-Host " (Elección guardada en $fichero)" -ForegroundColor DarkGray
+    } catch { Write-Host " No he podido guardar la elección en $fichero ($($_.Exception.Message)). Podrás cambiarla en el Zoo, en Perfil > Mi IA." }
+  }
+  Guardar-IA
+  Write-Host ''
   $instalados = 0
   function Instalar-Winget($nombre, $id, $paraQue) {
     Write-Host ''
@@ -115,14 +148,33 @@ function Empezar {
     $script:instalados++
     return $true
   }
+  function Instalar-Codex {
+    Write-Host ''
+    Write-Host ' Falta Codex: la IA de ChatGPT con la que vas a trabajar.'
+    if ($SinInstalar) { Write-Host ' (modo prueba) Lo instalaría con el instalador oficial (irm https://chatgpt.com/codex/install.ps1 | iex) o, si falla, con npm (npm install -g @openai/codex).'; return $true }
+    if (-not (Pregunta '¿Lo instalo ahora?')) { Write-Host ' Sin Codex no puedo seguir. Vuelve a ejecutar esto cuando quieras instalarlo.'; return $false }
+    # Instalador oficial de OpenAI. En proceso aparte para que sus "exit" no cierren esta ventana.
+    & powershell -NoProfile -ExecutionPolicy Bypass -Command 'irm https://chatgpt.com/codex/install.ps1 | iex'
+    Refrescar-Path
+    if (-not (Hay 'codex')) {
+      Write-Host ' El instalador oficial no ha terminado bien; pruebo con npm (viene con Node.js).'
+      & npm install -g @openai/codex
+      Refrescar-Path
+      if (-not (Hay 'codex')) { Mal 'No se ha podido instalar Codex. Haz una captura y mándasela a Lucas.'; return $false }
+    }
+    $script:instalados++
+    return $true
+  }
 
   if (-not (Hay 'git')) { if (-not (Instalar-Winget 'Git' 'Git.Git' 'guarda el historial de lo que haces y lo comparte con tu equipo')) { Pausa 'Pulsa Intro para cerrar'; return } }
   if (-not (Hay 'node')) { if (-not (Instalar-Winget 'Node.js' 'OpenJS.NodeJS.LTS' 'es el motor que hace funcionar las herramientas')) { Pausa 'Pulsa Intro para cerrar'; return } }
   if (-not (Hay 'gh')) { if (-not (Instalar-Winget 'GitHub CLI' 'GitHub.cli' 'te conecta con GitHub, donde viven los proyectos')) { Pausa 'Pulsa Intro para cerrar'; return } }
-  if (-not (Hay 'claude')) { if (-not (Instalar-Claude)) { Pausa 'Pulsa Intro para cerrar'; return } }
+  $ias = if ($script:IA -eq 'ambas') { @('claude', 'codex') } else { @($script:IAPrincipal) }
+  if ('claude' -in $ias -and -not (Hay 'claude')) { if (-not (Instalar-Claude)) { Pausa 'Pulsa Intro para cerrar'; return } }
+  if ('codex' -in $ias -and -not (Hay 'codex')) { if (-not (Instalar-Codex)) { Pausa 'Pulsa Intro para cerrar'; return } }
 
   if (-not $SinInstalar) {
-    $faltan = @('git', 'node', 'gh', 'claude') | Where-Object { -not (Hay $_) }
+    $faltan = @('git', 'node', 'gh') + $ias | Where-Object { -not (Hay $_) }
     if ($faltan.Count) {
       Write-Host ''
       Write-Host " He instalado programas nuevos, pero esta ventana todavía no los ve ($($faltan -join ', '))."
