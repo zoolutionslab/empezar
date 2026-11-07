@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "hash": "69c99bfe6c6c99e724fb3777b400291651dc448b8f5e766e38c961b58ccdd840",
+    "persona": "Anto",
+    "usado_por": null,
+    "fecha": null
+  },
+  {
+    "hash": "bc02a471b4bfbaf59b264d9c10080eeb1408d4ec57aa0055aae31cb471389b5e",
+    "persona": "Pablo",
+    "usado_por": null,
+    "fecha": null
+  },
+  {
+    "hash": "5c7aefc2b060ca63bdb14e38b44da73d73936b60d17e3e55b3be09804bc5279c",
+    "persona": "Jaime",
+    "usado_por": null,
+    "fecha": null
+  },
+  {
+    "hash": "7f70d01fd369833940881173ae5c46effe40584d332903502d1edd5c58bf7019",
+    "persona": "Granda",
+    "usado_por": null,
+    "fecha": null
+  },
+  {
+    "hash": "cb5de4120404d33d7f4c46d0da6878477454b33009fa9eafbd07253d3e5cd942",
+    "persona": "Lucas",
+    "usado_por": null,
+    "fecha": null
+  }
+]
