@@ -304,14 +304,19 @@ fi
 chmod +x "$DESTINO"/*.command 2>/dev/null || true
 ok "El Zoo está en  $DESTINO"
 
-# Acceso directo «Zoo» en el Escritorio: una pequeña app (osacompile, viene con el Mac) que abre Zoo.command, con la cabra
-# de icono (iconutil, también del sistema). En modo prueba (EMPEZAR_RAIZ) se deja dentro de la carpeta de prueba.
+# Acceso directo «Zoo» en el Escritorio: una pequeña app (osacompile, viene con el Mac), con la cabra de icono
+# (iconutil, también del sistema). No abre Zoo.command a secas: llama a app/scripts/acceso.sh del Zoo, que si el Zoo
+# ya está abierto trae su ventana al frente sin abrir otra Terminal, y si no lo arranca (si ese script no existiera,
+# abre Zoo.command como siempre). La marca zoo-acceso le dice al Zoo que este icono ya es el nuevo (app/servidor/acceso.ts).
+# En modo prueba (EMPEZAR_RAIZ) se deja dentro de la carpeta de prueba.
 LANZADOR="$DESTINO/Zoo.command"
+ACCESO="$DESTINO/app/scripts/acceso.sh"
 if command -v osacompile >/dev/null 2>&1; then
   ESCRITORIO="$HOME/Desktop"; [ -n "$EMPEZAR_RAIZ" ] && ESCRITORIO="$RAIZ"
   APP="$ESCRITORIO/Zoo.app"
   rm -rf "$APP"
-  if osacompile -o "$APP" -e "do shell script \"open '$LANZADOR'\"" >/dev/null 2>&1; then
+  if osacompile -o "$APP" -e "do shell script \"if [ -f '$ACCESO' ]; then /bin/bash '$ACCESO'; else open '$LANZADOR'; fi\"" >/dev/null 2>&1; then
+    echo 2 > "$APP/Contents/Resources/zoo-acceso" 2>/dev/null || true
     if command -v iconutil >/dev/null 2>&1 && [ -d "$DESTINO/identidad/marca/zoo.iconset" ]; then
       iconutil -c icns "$DESTINO/identidad/marca/zoo.iconset" -o "$APP/Contents/Resources/applet.icns" 2>/dev/null && touch "$APP"
     fi
